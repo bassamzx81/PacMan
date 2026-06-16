@@ -80,6 +80,9 @@
     <label>GHOST SPEED <span id="ghostVal">1.00</span>
       <input type="range" id="ghostSlider" min="0.2" max="1.5" step="0.05" value="1">
     </label>
+    <label>GHOSTS <span id="countVal">1</span>
+      <input type="range" id="countSlider" min="1" max="4" step="1" value="1">
+    </label>
   </div>
 </div>
 <canvas id="game" width="448" height="544"></canvas>
@@ -175,7 +178,7 @@ const GHOST_DEFS = [
   {name:'clyde',  color:'#ffb852', c:16, r:14, scatter:{c:0,  r:30}, release:8},
 ];
 let ghosts = [];
-const GHOST_COUNT = 1;   // how many of the four ghosts to spawn (1-4)
+let GHOST_COUNT = 1;     // how many of the four ghosts to spawn (1-4); live-tunable via slider
 let GHOST_SPEED = 1; // ghost speed relative to Pac-Man's base (lower = easier); live-tunable via slider
 let PAC_STEP = 2;    // Pac-Man pixels per frame (higher = faster); live-tunable via slider
 
@@ -263,9 +266,7 @@ function bfsDir(e, tc, tr, allowDoor, allowReverse) {
   return e.dir;
 }
 
-function resetActors() {
-  pac.x = 14 * TILE; pac.y = 23 * TILE + 8;
-  pac.dir = DIRS[1]; pac.nextDir = null; pac.moving = true; pac.anim = 0;
+function spawnGhosts() {
   ghosts = GHOST_DEFS.slice(0, GHOST_COUNT).map((d, i) => ({
     name: d.name, color: d.color, scatter: d.scatter,
     x: d.c * TILE + 8, y: d.r * TILE + 8, homeY: d.r * TILE + 8,
@@ -274,6 +275,12 @@ function resetActors() {
     releaseTimer: d.release * 60, bounceDir: 1, frightened: false,
     phase: i, // offsets each ghost's eye-animation so they're not all in sync
   }));
+}
+
+function resetActors() {
+  pac.x = 14 * TILE; pac.y = 23 * TILE + 8;
+  pac.dir = DIRS[1]; pac.nextDir = null; pac.moving = true; pac.anim = 0;
+  spawnGhosts();
   frightTimer = 0; ghostChain = 0; freezeTimer = 0;
   modeIdx = 0; modeTimer = PHASES[0][0] * 60;
   fruit.active = false;
@@ -943,18 +950,25 @@ addEventListener('keydown', e => {
 // ---------- speed sliders ----------
 const pacSlider = document.getElementById('pacSlider');
 const ghostSlider = document.getElementById('ghostSlider');
+const countSlider = document.getElementById('countSlider');
 const pacVal = document.getElementById('pacVal');
 const ghostVal = document.getElementById('ghostVal');
+const countVal = document.getElementById('countVal');
 pacSlider.value = PAC_STEP; pacVal.textContent = PAC_STEP;
 ghostSlider.value = GHOST_SPEED; ghostVal.textContent = GHOST_SPEED.toFixed(2);
+countSlider.value = GHOST_COUNT; countVal.textContent = GHOST_COUNT;
 pacSlider.addEventListener('input', () => {
   PAC_STEP = +pacSlider.value; pacVal.textContent = PAC_STEP;
 });
 ghostSlider.addEventListener('input', () => {
   GHOST_SPEED = +ghostSlider.value; ghostVal.textContent = GHOST_SPEED.toFixed(2);
 });
+countSlider.addEventListener('input', () => {
+  GHOST_COUNT = +countSlider.value; countVal.textContent = GHOST_COUNT;
+  spawnGhosts(); // rebuild the ghost set without disturbing Pac-Man or the dots
+});
 // keep arrow keys controlling Pac-Man, not a focused slider
-for (const s of [pacSlider, ghostSlider])
+for (const s of [pacSlider, ghostSlider, countSlider])
   s.addEventListener('change', () => s.blur());
 // collapse / expand the panel
 const speedControls = document.getElementById('speedControls');
